@@ -29,8 +29,8 @@ def procesar_repositorio(github_url):
     st.cache_resource.clear()
     if os.path.exists(REPO_PATH):
         shutil.rmtree(REPO_PATH, onerror=remove_readonly)
-    if os.path.exists(DB_PATH):
-        shutil.rmtree(DB_PATH, onerror=remove_readonly)
+    # QdrantVectorStore.from_documents maneja la recreación (force_recreate=True)
+    # Se evita borrar DB_PATH para no causar PermissionError en Windows por archivos bloqueados.
     
     subprocess.run(["git", "clone", github_url, REPO_PATH], check=True)
     
@@ -65,7 +65,7 @@ def procesar_reglas_empresa(uploaded_file):
         raw_bytes = uploaded_file.getvalue()
         try:
             texto_completo = raw_bytes.decode("utf-8")
-        except:
+        except Exception:
             texto_completo = raw_bytes.decode("latin-1", errors="ignore")
     
     reglas_actuales = st.session_state.get("reglas_corporativas", "")

@@ -40,10 +40,9 @@ def init_agent():
         prompt = HR_PROMPT.format(reglas=reglas)
         return {"messages": [llm.invoke([SystemMessage(content=prompt)] + state["messages"])]}
 
-    # --- NUEVO AGENTE: SOLO PARA CHARLAR Y RECORDAR ---
+    # Nodo conversacional sin dependencias de Retrieval.
     def chat_agent(state: MessagesState):
-        # Este agente NO carga la base de datos ni los manuales. 
-        # Solo tiene acceso al historial, por lo que su memoria es perfecta.
+        # Este agente utiliza exclusivamente el contexto en memoria (MessageHistory).
         system_prompt = "Eres el Mentor IA de TechCorp. Tu objetivo es conversar de forma natural y empática. Usa el historial de la conversación para recordar el nombre, rol y preferencias del usuario si te las ha dicho."
         return {"messages": [llm.invoke([SystemMessage(content=system_prompt)] + state["messages"])]}
 
@@ -56,7 +55,7 @@ def init_agent():
         except Exception:
             return "explainer"
             
-        # Enrutamiento actualizado
+        # Lógica de enrutado.
         if "RRHH" in res:
             return "hr"
         elif "CHARLA" in res:
@@ -69,19 +68,19 @@ def init_agent():
     workflow.add_node("auditor", auditor_agent)
     workflow.add_node("critic", critic_agent)
     workflow.add_node("hr", hr_agent)
-    workflow.add_node("chat", chat_agent) # Añadimos el nuevo nodo
+    workflow.add_node("chat", chat_agent) # Registrar nodo conversacional
     
     workflow.add_conditional_edges(START, route_query, {
         "auditor": "auditor", 
         "explainer": "explainer", 
         "hr": "hr",
-        "chat": "chat" # Añadimos la ruta de charla
+        "chat": "chat" # Configurar ruta hacia nodo conversacional
     })
     
     workflow.add_edge("auditor", "critic")
     workflow.add_edge("critic", END)
     workflow.add_edge("explainer", END)
     workflow.add_edge("hr", END)
-    workflow.add_edge("chat", END) # El agente de charla termina la ejecución
+    workflow.add_edge("chat", END) # Flujo de término del nodo conversacional
     
     return workflow.compile(checkpointer=MemorySaver())
